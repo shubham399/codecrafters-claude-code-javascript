@@ -1,14 +1,12 @@
 import OpenAI from "openai";
-import { readFile } from "fs/promises";
-import { writeFile } from "fs";
+import { readFile,writeFile } from "fs/promises";
 
 async function Read(filePath) {
     const content = await readFile(filePath, "utf8");
     return content;
 }
 async function Write(filePath, content) {
-    const content = await writeFile(filePath, content);
-    return content;
+    await writeFile(filePath, content);
 }
 
 async function main() {
@@ -103,7 +101,7 @@ async function main() {
                 messages.push({
                     role: "tool",
                     tool_call_id: tool.id,
-                    content: "Created the file",
+                    content: fnArgs.content
                 });
             }
         }
