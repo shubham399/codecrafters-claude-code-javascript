@@ -1,4 +1,10 @@
 import OpenAI from "openai";
+import { readFile } from "fs/promises";
+
+async function Read(filePath) {
+    const content = await readFile(filePath, "utf8");
+    return content;
+  }
 
 async function main() {
     const [, , flag, prompt] = process.argv;
@@ -46,7 +52,19 @@ async function main() {
 
     // You can use print statements as follows for debugging, they'll be visible when running tests.
     console.error("Logs from your program will appear here!");
-    console.log(response.choices[0].message.content);
+    const { message } = response.choices[0];
+
+    if (message.tool_calls && message.tool_calls.length > 0) {
+        const tool = message.tool_calls[0];
+        const fnName = tool.function.name;
+        const fnArgs = JSON.parse(tool.function.arguments);
+        if (fnName === "Read") {
+            const data = await Read(fnArgs.file_path);
+            console.log(data);
+        }
+    } else {
+        console.log(message.content);
+    }
 }
 
 main();
