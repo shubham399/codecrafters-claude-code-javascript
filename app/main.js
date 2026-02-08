@@ -11,9 +11,8 @@ async function Write(filePath, content) {
 }
 
 async function Bash(command) {
-    const { stdout, stderr } = execSync(command);
-    if (stderr === "") return stdout;
-    return stderr;
+    const data = execSync(command, { encoding: "utf8" });
+    return data;
 }
 
 async function main() {
@@ -129,8 +128,11 @@ async function main() {
                     content: fnArgs.content
                 });
             }
-            if(fnName === "Bash") {
+            if (fnName === "Bash") {
                 const data = await Bash(fnArgs.command);
+
+                console.log("🚀 ~ main ~ data:", data);
+
                 messages.push({
                     role: "tool",
                     tool_call_id: tool.id,
