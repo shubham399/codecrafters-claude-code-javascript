@@ -1,8 +1,13 @@
 import OpenAI from "openai";
 import { readFile } from "fs/promises";
+import { writeFile } from "fs";
 
 async function Read(filePath) {
     const content = await readFile(filePath, "utf8");
+    return content;
+}
+async function Write(filePath, content) {
+    const content = await writeFile(filePath, content);
     return content;
 }
 
@@ -44,8 +49,29 @@ async function main() {
                         },
                         "required": ["file_path"]
                     }
+                },
+            }, {
+                "type": "function",
+                "function": {
+                    "name": "Write",
+                    "description": "Write content to a file",
+                    "parameters": {
+                        "type": "object",
+                        "required": ["file_path", "content"],
+                        "properties": {
+                            "file_path": {
+                                "type": "string",
+                                "description": "The path of the file to write to"
+                            },
+                            "content": {
+                                "type": "string",
+                                "description": "The content to write to the file"
+                            }
+                        }
+                    }
                 }
-            }]
+            }
+            ]
         });
 
         if (!response.choices || response.choices.length === 0) {
@@ -70,6 +96,14 @@ async function main() {
                     role: "tool",
                     tool_call_id: tool.id,
                     content: data,
+                });
+            }
+            if (fnName === "Write") {
+                await Write(fnArgs.file_path, fnArgs.content);
+                messages.push({
+                    role: "tool",
+                    tool_call_id: tool.id,
+                    content: "Created the file",
                 });
             }
         }
