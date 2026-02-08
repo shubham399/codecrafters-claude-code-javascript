@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import { readFile, writeFile } from "fs/promises";
-import { exec } from "child_process";
+import { execSync } from "child_process";
 
 async function Read(filePath) {
     const content = await readFile(filePath, "utf8");
@@ -11,8 +11,9 @@ async function Write(filePath, content) {
 }
 
 async function Bash(command) {
-    const data = await exec(command);
-    return data;
+    const { stdout, stderr } = execSync(command);
+    if (stderr === "") return stdout;
+    return stderr;
 }
 
 async function main() {
