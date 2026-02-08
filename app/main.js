@@ -1,5 +1,6 @@
 import OpenAI from "openai";
-import { readFile,writeFile } from "fs/promises";
+import { readFile, writeFile } from "fs/promises";
+import { exec } from "child_process";
 
 async function Read(filePath) {
     const content = await readFile(filePath, "utf8");
@@ -7,6 +8,11 @@ async function Read(filePath) {
 }
 async function Write(filePath, content) {
     await writeFile(filePath, content);
+}
+
+async function Bash(command) {
+    const data = await exec(command);
+    return data;
 }
 
 async function main() {
@@ -68,7 +74,25 @@ async function main() {
                         }
                     }
                 }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "Bash",
+                    "description": "Execute a shell command",
+                    "parameters": {
+                        "type": "object",
+                        "required": ["command"],
+                        "properties": {
+                            "command": {
+                                "type": "string",
+                                "description": "The command to execute"
+                            }
+                        }
+                    }
+                }
             }
+
             ]
         });
 
@@ -102,6 +126,14 @@ async function main() {
                     role: "tool",
                     tool_call_id: tool.id,
                     content: fnArgs.content
+                });
+            }
+            if(fnName === "Bash") {
+                const data = await Bash(fnArgs.command);
+                messages.push({
+                    role: "tool",
+                    tool_call_id: tool.id,
+                    content: data,
                 });
             }
         }
