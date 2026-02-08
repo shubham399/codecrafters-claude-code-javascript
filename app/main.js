@@ -4,7 +4,7 @@ import { readFile } from "fs/promises";
 async function Read(filePath) {
     const content = await readFile(filePath, "utf8");
     return content;
-  }
+}
 
 async function main() {
     const [, , flag, prompt] = process.argv;
@@ -24,47 +24,57 @@ async function main() {
         baseURL: baseURL,
     });
 
-    const response = await client.chat.completions.create({
-        model: "anthropic/claude-haiku-4.5",
-        messages: [{ role: "user", content: prompt }],
-        tools: [{
-            "type": "function",
-            "function": {
-                "name": "Read",
-                "description": "Read and return the contents of a file",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "file_path": {
-                            "type": "string",
-                            "description": "The path to the file to read"
-                        }
-                    },
-                    "required": ["file_path"]
+    const messages = [{ role: "user", content: prompt }];
+    while (true) {
+        const response = await client.chat.completions.create({
+            model: "anthropic/claude-haiku-4.5",
+            messages,
+            tools: [{
+                "type": "function",
+                "function": {
+                    "name": "Read",
+                    "description": "Read and return the contents of a file",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "file_path": {
+                                "type": "string",
+                                "description": "The path to the file to read"
+                            }
+                        },
+                        "required": ["file_path"]
+                    }
                 }
-            }
-        }]
-    });
+            }]
+        });
 
-    if (!response.choices || response.choices.length === 0) {
-        throw new Error("no choices in response");
-    }
-
-    // You can use print statements as follows for debugging, they'll be visible when running tests.
-    console.error("Logs from your program will appear here!");
-    const { message } = response.choices[0];
-
-    if (message.tool_calls && message.tool_calls.length > 0) {
-        const tool = message.tool_calls[0];
-        const fnName = tool.function.name;
-        const fnArgs = JSON.parse(tool.function.arguments);
-        if (fnName === "Read") {
-            const data = await Read(fnArgs.file_path);
-            console.log(data);
+        if (!response.choices || response.choices.length === 0) {
+            throw new Error("no choices in response");
         }
-    } else {
-        console.log(message.content);
+
+        // You can use print statements as follows for debugging, they'll be visible when running tests.
+        console.error("Logs from your program will appear here!");
+        const { message } = response.choices[0];
+        messages.push(message);
+        if (!message.tool_calls || message.tool_calls.length === 0) {
+            console.log(message.content);
+            break;
+        }
+        if (message.tool_calls && message.tool_calls.length > 0) {
+            const tool = message.tool_calls[0];
+            const fnName = tool.function.name;
+            const fnArgs = JSON.parse(tool.function.arguments);
+            if (fnName === "Read") {
+                const data = await Read(fnArgs.file_path);
+                messages.push({
+                    role: "tool",
+                    tool_call_id: tool.id,
+                    content: data,
+                });
+            }
+        }
     }
 }
+
 
 main();
